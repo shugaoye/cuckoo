@@ -9,6 +9,9 @@ storage/*
 
 # Ignore Python byte code
 *.pyc
+*.??~
+*.???~
+*.????~
 
 # Ignore certificates
 *.pem

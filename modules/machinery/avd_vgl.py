@@ -26,39 +26,39 @@ class Avd(Machinery):
         """
         self.emulator_processes = {}
 
-        if not self.options.avd.emulator_path:
+        if not self.options.avd_vgl.emulator_path:
             raise CuckooCriticalError("emulator path missing, "
                                       "please add it to the config file")
 
-        if not os.path.exists(self.options.avd.emulator_path):
+        if not os.path.exists(self.options.avd_vgl.emulator_path):
             raise CuckooCriticalError("emulator not found at "
                                       "specified path \"%s\"" %
-                                      self.options.avd.emulator_path)
+                                      self.options.avd_vgl.emulator_path)
 
-        if not self.options.avd.adb_path:
+        if not self.options.avd_vgl.adb_path:
             raise CuckooCriticalError("adb path missing, "
                                       "please add it to the config file")
 
-        if not os.path.exists(self.options.avd.adb_path):
+        if not os.path.exists(self.options.avd_vgl.adb_path):
             raise CuckooCriticalError("adb not found at "
                                       "specified path \"%s\"" %
-                                      self.options.avd.adb_path)
+                                      self.options.avd_vgl.adb_path)
 
-        if not self.options.avd.avd_path:
+        if not self.options.avd_vgl.avd_path:
             raise CuckooCriticalError("avd path missing, "
                                       "please add it to the config file")
 
-        if not os.path.exists(self.options.avd.avd_path):
+        if not os.path.exists(self.options.avd_vgl.avd_path):
             raise CuckooCriticalError("avd not found at "
                                       "specified path \"%s\"" %
-                                      self.options.avd.avd_path)
+                                      self.options.avd_vgl.avd_path)
 
-        if not self.options.avd.reference_machine:
+        if not self.options.avd_vgl.reference_machine:
             raise CuckooCriticalError("reference machine path missing, "
                                       "please add it to the config file")
 
-        machine_path = os.path.join(self.options.avd.avd_path,
-                                    self.options.avd.reference_machine)
+        machine_path = os.path.join(self.options.avd_vgl.avd_path,
+                                    self.options.avd_vgl.reference_machine)
         if not os.path.exists("%s.avd" % machine_path) or \
                 not os.path.exists("%s.ini" % machine_path):
             raise CuckooCriticalError("reference machine not found at "
@@ -89,7 +89,7 @@ class Avd(Machinery):
         """Lists virtual machines installed.
         @return: virtual machine names list.
         """
-        return self.options.avd.machines
+        return self.options.avd_vgl.machines
 
     def _status(self, label):
         """Gets current status of a vm.
@@ -100,16 +100,16 @@ class Avd(Machinery):
 
     def duplicate_reference_machine(self, label):
         """Creates a new emulator based on a reference one."""
-        reference_machine = self.options.avd.reference_machine
+        reference_machine = self.options.avd_vgl.reference_machine
         log.debug("Duplicate Reference Machine '{0}'.".format(reference_machine))
 
         # Clean/delete if new emulator already exists.
         self.delete_old_emulator(label)
 
-        avd_config_file = os.path.join(self.options.avd.avd_path, reference_machine+".ini")
-        new_config_file = os.path.join(self.options.avd.avd_path, label+".ini")
-        reference_avd_path = os.path.join(self.options.avd.avd_path, reference_machine+".avd/")
-        new_avd_path = os.path.join(self.options.avd.avd_path, label+".avd/")
+        avd_config_file = os.path.join(self.options.avd_vgl.avd_path, reference_machine+".ini")
+        new_config_file = os.path.join(self.options.avd_vgl.avd_path, label+".ini")
+        reference_avd_path = os.path.join(self.options.avd_vgl.avd_path, reference_machine+".avd/")
+        new_avd_path = os.path.join(self.options.avd_vgl.avd_path, label+".avd/")
         hw_qemu_config_file = os.path.join(new_avd_path, "hardware-qemu.ini")
 
         # First we copy the template.
@@ -131,14 +131,14 @@ class Avd(Machinery):
     def delete_old_emulator(self, label):
         """Deletes any trace of an emulator that would have the same name as
         the one of the current emulator."""
-        old_emulator_config_file = os.path.join(self.options.avd.avd_path,
+        old_emulator_config_file = os.path.join(self.options.avd_vgl.avd_path,
                                                 "%s.ini" % label)
 
         if os.path.exists(old_emulator_config_file):
             log.debug("Deleting old emulator config file '{0}'".format(old_emulator_config_file))
             os.remove(old_emulator_config_file)
 
-        old_emulator_path = os.path.join(self.options.avd.avd_path, label+".avd/")
+        old_emulator_path = os.path.join(self.options.avd_vgl.avd_path, label+".avd/")
         if os.path.isdir(old_emulator_path):
             log.debug("Deleting old emulator FS '{0}'".format(old_emulator_path))
             shutil.rmtree(old_emulator_path)
@@ -165,7 +165,8 @@ class Avd(Machinery):
 
         # QEMU2 does not support -no-snapshot-save and -tcpdump
         cmd = [
-            self.options.avd.emulator_path,
+            "/opt/VirtualGL/bin/vglrun",
+            self.options.avd_vgl.emulator_path,
             "@%s" % label,
 #            "-no-snapshot-save",
             "-netspeed",
@@ -174,6 +175,8 @@ class Avd(Machinery):
             "none",
             "-port",
             "%s" % emulator_port,
+            "-selinux",
+            "disabled",
             "-verbose",
             "-show-kernel",
 #            " > ",
@@ -185,7 +188,7 @@ class Avd(Machinery):
         log.debug("CMD line of emulator %s" % cmd)
 
         # In headless mode we remove the skin, audio, and window support.
-        if self.options.avd.mode == "headless":
+        if self.options.avd_vgl.mode == "headless":
             cmd += ["-no-skin", "-no-audio", "-no-window"]
 
         # If a proxy address has been provided for this analysis, then we have
@@ -210,7 +213,7 @@ class Avd(Machinery):
 
         # Kill process.
         cmd = [
-            self.options.avd.adb_path,
+            self.options.avd_vgl.adb_path,
             "-s", "emulator-%s" % emulator_port,
             "emu", "kill",
         ]
@@ -229,7 +232,7 @@ class Avd(Machinery):
         """Analyzes the emulator and returns when it's ready."""
 
         emulator_port = str(self.options.get(label)["emulator_port"])
-        adb = self.options.avd.adb_path
+        adb = self.options.avd_vgl.adb_path
 
         log.debug("Waiting for device emulator-"+emulator_port+" to be ready.")
         cmd = [
@@ -287,7 +290,7 @@ class Avd(Machinery):
 
     def port_forward(self, label):
         cmd = [
-            self.options.avd.adb_path,
+            self.options.avd_vgl.adb_path,
             "-s", "emulator-%s" % self.options.get(label)["emulator_port"],
             "forward", "tcp:8000", "tcp:8000",
         ]
@@ -297,7 +300,7 @@ class Avd(Machinery):
 
     def start_agent(self, label):
         cmd = [
-            self.options.avd.adb_path,
+            self.options.avd_vgl.adb_path,
             "-s", "emulator-%s" % self.options.get(label)["emulator_port"],
             "shell", "/data/local/agent.sh",
         ]
@@ -310,7 +313,7 @@ class Avd(Machinery):
         """
         log.debug("Checking if ADB recognizes emulator...")
 
-        cmd = [self.options.avd.adb_path, "devices"]
+        cmd = [self.options.avd_vgl.adb_path, "devices"]
         output = OSCommand.executeCommand(cmd)
 
         emu = "emulator-%s" % self.options.get(label)["emulator_port"]
@@ -327,11 +330,11 @@ class Avd(Machinery):
         """
         log.debug("Restarting ADB server...")
 
-        cmd = [self.options.avd.adb_path, "kill-server"]
+        cmd = [self.options.avd_vgl.adb_path, "kill-server"]
         OSCommand.executeCommand(cmd)
         log.debug("ADB server has been killed.")
 
-        cmd = [self.options.avd.adb_path, "start-server"]
+        cmd = [self.options.avd_vgl.adb_path, "start-server"]
         OSCommand.executeCommand(cmd)
         log.debug("ADB server has been restarted.")
 

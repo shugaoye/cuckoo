@@ -15,7 +15,15 @@ def install_sample(path):
     """Install the sample on the emulator via adb"""
     log.info("Installing sample in the device: %s", path)
     try:
-        args = ["/system/bin/sh", "/system/bin/pm", "install", path]
+	current = os.getcwd()+"/run_pm.sh"
+        args = ["chmod", "775", path]
+        output = subprocess.check_output(args)
+        args = ["chmod", "775", current]
+        output = subprocess.check_output(args)
+        log.info("Current folder is %s", current)
+
+        # There is a problem in 5.x above, so we use shell script to install
+        args = [current, path]
         output = subprocess.check_output(args)
     except subprocess.CalledProcessError as e:
         log.error("Error installing sample: %r", e)
@@ -27,10 +35,12 @@ def execute_sample(package, activity):
     """Execute the sample on the emulator via adb"""
     try:
         package_activity = "%s/%s" % (package, activity)
-        args = [
-            "/system/bin/sh", "/system/bin/am", "start",
-            "-n", package_activity,
-        ]
+	current = os.getcwd()+"/run_am.sh"
+        args = ["chmod", "775", current]
+        output = subprocess.check_output(args)
+
+        # There is a problem in 5.x above, so we use shell script to run
+        args = [current, package_activity]
         output = subprocess.check_output(args)
     except subprocess.CalledProcessError as e:
         log.error("Error executing package activity: %r", e)
@@ -62,6 +72,13 @@ def dump_droidmon_logs(package):
     send_file("logs/droidmon.log", "\n".join(log_success))
     send_file("logs/droidmon_error.log", "\n".join(log_error))
 
+    cuckoo_droid_logs = "/data/local/tmp/cuckoo_droid.log"
+    log_cuckoo_droid = []
+    for line in open(cuckoo_droid_logs, "rb"):
+        log_cuckoo_droid.append(line)
+
+    send_file("logs/cuckoo_droid.log", "\n".join(log_cuckoo_droid))
+
 def execute_browser(url):
     """Start URL intent on the emulator."""
     try:
@@ -79,8 +96,18 @@ def execute_browser(url):
 
 def take_screenshot(filename):
     try:
-        subprocess.check_output(["/system/bin/screencap", "-p",
-                                 "/sdcard/%s" % filename])
+        subprocess.check_output(["/system/bin/screencap", "-p", "/sdcard/%s" % filename])
+        # In Android 5.x, we have to use /storage/sdcard. To overcome this issue,
+        # a soft link is created in ramdisk.img.
+        # $ ln -s /storage/sdcard .
+        # Make script run_screencap.sh executable
+        # current = os.getcwd()+"/run_screencap.sh"
+        # args = ["chmod", "775", current]
+        # output = subprocess.check_output(args)
+
+        # log.info("screenshot filename: %s", filename)
+        # args = [current, "/sdcard/%s" % filename]
+        # subprocess.check_output(args)
     except subprocess.CalledProcessError as e:
         log.error("Error creating screenshot: %r", e)
         return
