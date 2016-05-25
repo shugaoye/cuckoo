@@ -35,6 +35,7 @@ def execute_sample(package, activity):
     """Execute the sample on the emulator via adb"""
     try:
         package_activity = "%s/%s" % (package, activity)
+        log.info("Execute activity package/activity=%s/%s", package, activity)
 	current = os.getcwd()+"/run_am.sh"
         args = ["chmod", "775", current]
         output = subprocess.check_output(args)
@@ -49,6 +50,14 @@ def execute_sample(package, activity):
     log.info("Executed package activity: %r", output)
 
 def dump_droidmon_logs(package):
+    log.info("Starting to dump logs...")
+    cuckoo_droid_logs = "/data/local/tmp/cuckoo_droid.log"
+    log_cuckoo_droid = []
+    for line in open(cuckoo_droid_logs, "rb"):
+        log_cuckoo_droid.append(line)
+
+    send_file("logs/cuckoo_droid.log", "\n".join(log_cuckoo_droid))
+
     xposed_logs = "/data/data/de.robv.android.xposed.installer/log/error.log"
     if not os.path.exists(xposed_logs):
         log.info("Could not find any Xposed logs, skipping droidmon logs.")
@@ -71,13 +80,6 @@ def dump_droidmon_logs(package):
     send_file("logs/xposed.log", "\n".join(log_xposed))
     send_file("logs/droidmon.log", "\n".join(log_success))
     send_file("logs/droidmon_error.log", "\n".join(log_error))
-
-    cuckoo_droid_logs = "/data/local/tmp/cuckoo_droid.log"
-    log_cuckoo_droid = []
-    for line in open(cuckoo_droid_logs, "rb"):
-        log_cuckoo_droid.append(line)
-
-    send_file("logs/cuckoo_droid.log", "\n".join(log_cuckoo_droid))
 
 def execute_browser(url):
     """Start URL intent on the emulator."""

@@ -69,7 +69,7 @@ class Avd(Machinery):
         @param label: virtual machine name.
         @param task: task object.
         @raise CuckooMachineError: if unable to start.
-        """
+        """        
         log.debug("Starting vm %s" % label)
 
         self.duplicate_reference_machine(label)
@@ -167,7 +167,7 @@ class Avd(Machinery):
         cmd = [
             self.options.avd.emulator_path,
             "@%s" % label,
-#            "-no-snapshot-save",
+            "-no-snapshot-save",
             "-netspeed",
             "full",
             "-netdelay",
@@ -176,10 +176,8 @@ class Avd(Machinery):
             "%s" % emulator_port,
             "-verbose",
             "-show-kernel",
-#            " > ",
-#            "/tmp/cuckoo_emu22.log",
-#            "-tcpdump",
-#            self.pcap_path(task.id),
+            "-tcpdump",
+            self.pcap_path(task.id),
         ]
 
         log.debug("CMD line of emulator %s" % cmd)
