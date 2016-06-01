@@ -19,7 +19,7 @@ from lib.cuckoo.common.config import Config
 from lib.cuckoo.common.constants import CUCKOO_ROOT
 from lib.cuckoo.common.constants import CUCKOO_GUEST_PORT, CUCKOO_GUEST_INIT
 from lib.cuckoo.common.constants import CUCKOO_GUEST_COMPLETED
-from lib.cuckoo.common.constants import CUCKOO_GUEST_FAILED
+from lib.cuckoo.common.constants import CUCKOO_GUEST_FAILED, CUCKOO_GUEST_RUNNING
 from lib.cuckoo.common.exceptions import CuckooGuestError
 from lib.cuckoo.common.utils import TimeoutServer
 from lib.cuckoo.core.database import Database
@@ -171,6 +171,8 @@ class OldGuestManager(object):
                                            "{1}".format(options["target"], e))
 
                 data = xmlrpclib.Binary(file_data)
+                
+                log.debug("The sample is %s. file_name is %s.", options["target"], options["file_name"])
 
                 try:
                     self.server.add_malware(data, options["file_name"])
@@ -215,6 +217,10 @@ class OldGuestManager(object):
             if status == CUCKOO_GUEST_COMPLETED:
                 log.info("%s: analysis completed successfully", self.id)
                 break
+            elif status == CUCKOO_GUEST_INIT:
+                log.info("%s: analysis inited successfully", self.id)
+            elif status == CUCKOO_GUEST_RUNNING:
+                log.info("%s: analysis is running", self.id)
             elif status == CUCKOO_GUEST_FAILED:
                 error = self.server.get_error()
                 if not error:

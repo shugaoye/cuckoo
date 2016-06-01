@@ -10,13 +10,74 @@ import subprocess
 import time
 import shutil
 import shlex
+import multiprocessing
 
+from droidbot.droidbot import DroidBot
 from lib.cuckoo.common.abstracts import Machinery
 from lib.cuckoo.common.exceptions import CuckooCriticalError
 from lib.cuckoo.core.resultserver import ResultServer
+from lib.cuckoo.common.config import Config
 
 log = logging.getLogger(__name__)
 
+class Droidbot4avd:
+    """ DroidBot integration with cuckoo. """
+    
+    def __init__(self, task, emulator_port):
+        """ Initialize DroidBot """
+        
+        self.process = None
+        self.task = task
+        self.cfg = Config("cuckoo")
+        self.options=self.cfg.get("timeouts")
+    
+        # self, app_path, device_serial, output_dir=None,
+        # env_policy=None, event_policy=None, with_droidbox=False,
+        # event_count=None, event_interval=None, event_duration=None, quiet=False
+        log.debug("DroidBot init timeouts=%s, %s \"%s\" (task #%d), %s", self.options["default"],
+                 self.task.category.upper(), self.task.target, self.task.id, emulator_port)
+#       log.info("Machine label is %s", self.label)
+               
+        self.droidbot = DroidBot(task.target, "emulator-%s" % emulator_port, 
+                        None, None, "dynamic", False, None, None, self.options["default"], False)
+        log.debug("DroidBot is ready.")
+        
+    def run(self):
+        """ Running DroidBot in a separate process. """
+        
+        try:
+#       self.droidbot.device.install_app(self.droidbot.app)
+            self.droidbot.env_manager.deploy()
+            self.droidbot.event_manager.start()
+        except KeyboardInterrupt:
+            pass
+        return
+    
+    def start(self):
+        """ Start DroidBot and create a new process. """
+        
+        log.debug("Enter DroidBotInput.start");
+#        if self.task.category == "file":
+#            target = os.path.basename(target)
+            
+#        self.droidbot = DroidBot("/mnt/sofia/Downloads/LG/ASTRO.apk", "emulator-5554")
+        
+        Process_jobs = []
+        self.process = multiprocessing.Process(target=self.run)
+        Process_jobs.append(self.process)
+        self.process.start()
+        log.debug("Exit DroidBotInput.start")
+    
+    def stop(self):
+        """ Stop DroidBot """
+        log.debug("Enter DroidBotInput.stop");
+        self.droidbot.env_manager.stop()
+        self.droidbot.event_manager.stop()
+#            self.device.uninstall_app(self.app)
+        self.droidbot.device.disconnect()
+        self.process.join()    
+        log.debug("Exit DroidBotInput.stop");
+        
 class Avd(Machinery):
     """Virtualization layer for Android Emulator."""
 
@@ -71,11 +132,14 @@ class Avd(Machinery):
         @raise CuckooMachineError: if unable to start.
         """        
         log.debug("Starting vm %s" % label)
+        emulator_port = self.options.get(label)["emulator_port"]
 
         self.duplicate_reference_machine(label)
         self.start_emulator(label, task)
 #        self.start_agent(label)
-        self.port_forward(label)
+        self.port_forward(label)        
+        self.droitbot = Droidbot4avd(task, emulator_port)
+        self.droitbot.start()
 
     def stop(self, label):
         """Stops a virtual machine.
@@ -83,6 +147,8 @@ class Avd(Machinery):
         @raise CuckooMachineError: if unable to stop.
         """
         log.debug("Stopping vm %s" % label)
+        
+        self.droitbot.stop()
         self.stop_emulator(label)
 
     def _list(self):
@@ -201,8 +267,9 @@ class Avd(Machinery):
         # Waits for device to be ready.
         self.wait_for_device_ready(label)
 
-    def stop_emulator(self, label):
+    def stop_emulator(self, label):        
         """Stop the emulator."""
+        
         emulator_port = str(self.options.get(label)["emulator_port"])
         log.info("Stopping AVD listening on port {0}".format(emulator_port))
 
