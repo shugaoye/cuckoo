@@ -13,6 +13,7 @@ import shlex
 import multiprocessing
 
 from droidbot.droidbot import DroidBot
+from lib.cuckoo.common.constants import CUCKOO_ROOT
 from lib.cuckoo.common.abstracts import Machinery
 from lib.cuckoo.common.exceptions import CuckooCriticalError
 from lib.cuckoo.core.resultserver import ResultServer
@@ -30,6 +31,11 @@ class Droidbot4avd:
         self.task = task
         self.cfg = Config("cuckoo")
         self.options=self.cfg.get("timeouts")
+        self.output_dir = os.path.join(CUCKOO_ROOT,
+                                    "storage",
+                                    "analyses",
+                                    str(self.task.id),
+                                    "droidbot_out")
     
         # self, app_path, device_serial, output_dir=None,
         # env_policy=None, event_policy=None, with_droidbox=False,
@@ -39,7 +45,7 @@ class Droidbot4avd:
 #       log.info("Machine label is %s", self.label)
                
         self.droidbot = DroidBot(task.target, "emulator-%s" % emulator_port, 
-                        None, None, "dynamic", False, None, None, self.options["default"], False)
+                        self.output_dir, None, "dynamic", False, None, None, self.options["default"], False)
         log.debug("DroidBot is ready.")
         
     def run(self):
